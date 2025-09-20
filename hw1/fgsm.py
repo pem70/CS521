@@ -45,6 +45,30 @@ assert(new_class == t)
 print(torch.norm((x-adv_x),  p=float('inf')).data)
 assert( torch.norm((x-adv_x), p=float('inf')) <= epsReal)
 
+# repeat the experiment with different target class
+t_1 = 1
+epsReal_1 = 0.5
+eps1 = epsReal_1 - 1e-7
+
+x1 = x.detach().clone().requires_grad_(True)
+
+# IMPORTANT: zero any stale grads and use the same loss L
+N.zero_grad()
+loss1 = L(N(x1), torch.tensor([t_1], dtype=torch.long))
+loss1.backward()
+
+# Targeted FGSM: move *against* the gradient for the target class
+adv_x_1 = torch.clamp(x1 - eps1 * torch.sign(x1.grad), 0.0, 1.0)
+
+new_class_1 = N(adv_x_1).argmax(dim=1).item()
+print("New Class 1:", new_class_1)
+assert new_class_1 == t_1
+
+# Check closeness under L-infinity norm
+linf_dist_1 = torch.norm((x1 - adv_x_1), p=float('inf')).item()
+print("L_inf distance (t=1):", linf_dist_1)
+assert linf_dist_1 <= epsReal_1 + 1e-8
+
 t_1 = 1
 eps = 1                
 step = 0.05             
@@ -84,5 +108,3 @@ print("New Class 1 (targeted CW-PGD):", new_class_1)
 linf_dist = torch.norm((x0 - x_adv_1), p=float('inf')).item()
 print("L_inf distance:", linf_dist)
 assert linf_dist <= eps + 1e-8
-
-
